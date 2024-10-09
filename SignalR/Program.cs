@@ -7,7 +7,8 @@ using SignalR.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+//builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
 builder.Services.AddTransient<IChatRoomService, ChatRoomService>();
 builder.Services.AddTransient<IMessageService, MessageService>();
 builder.Services.AddSignalR().AddAzureSignalR(builder.Configuration["Azure:SignalR:ConnectionString"]); // Configura Azure SignalR
@@ -45,7 +46,9 @@ if (app.Environment.IsDevelopment())
     //app.UseSwagger();
     //app.UseSwaggerUI();
     //app.UseDeveloperExceptionPage();
-} else {
+} 
+else {
+    var dbProvider = builder.Configuration.GetValue<string>("DatabaseProvider");
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     dbContext.Database.Migrate();  // Ejecuta solo las migraciones pendientes

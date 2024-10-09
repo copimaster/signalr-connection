@@ -31,7 +31,36 @@ namespace SignalR.Services
         {
             message.Id = Guid.NewGuid();
             message.RoomId = roomId;
-            message.PostedAt = DateTimeOffset.Now;
+            message.SentAt = DateTimeOffset.Now;
+
+            _context.Messages.Add(message);
+
+            var saveResults = await _context.SaveChangesAsync();
+
+            return saveResults > 0;
+        }
+
+        public async Task<bool> AddSystemMessage(Message message)
+        {
+            message.Id = Guid.NewGuid();
+            message.SentAt = DateTimeOffset.Now;
+            message.Type = MessageType.System;
+
+            _context.Messages.Add(message);
+
+            var saveResults = await _context.SaveChangesAsync();
+
+            return saveResults > 0;
+        }
+
+        public async Task<bool> AddUserMessage(string roomName, Message message)
+        {
+            var room = _context.ChatRooms.Where(x => x.Name == roomName).FirstOrDefault();
+
+            message.Id = Guid.NewGuid();
+            message.SentAt = DateTimeOffset.Now;
+            message.RoomId = room?.Id;
+            message.Type = MessageType.User;
 
             _context.Messages.Add(message);
 

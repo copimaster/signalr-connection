@@ -32,7 +32,7 @@ namespace SignalR.Hubs
         public Task UserLeftGroup(string message);
 
         /// <summary>
-        /// Enviamos una confirmación al cliente de que dejó la sala.
+        /// Enviamos una confirmación al cliente que dejó la sala.
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
@@ -103,8 +103,15 @@ namespace SignalR.Hubs
                 return oldSet;
             });
 
-            await Clients.Group(conn.ChatRoom).UserJoinedGroup(conn.UserName, $"{conn.UserName} has Joined {conn.ChatRoom}");
+            Message msg = new() {
+                SenderId = conn.UserId,
+                Content = $"{conn.UserName} has Joined {conn.ChatRoom}"
+            };
+
+            await Clients.Group(conn.ChatRoom).UserJoinedGroup(conn.UserName, msg.Content);
             await Clients.Caller.JoinedGroup(conn.UserName, $"Welcome {conn.UserName} to Group Chat!");
+
+            await _messageService.AddSystemMessage(msg);
 
             // Notify the caller about all users in the room
             await Clients.Caller.UserList(conn.ChatRoom, GetUsersInRoom(conn.ChatRoom));
@@ -128,9 +135,15 @@ namespace SignalR.Hubs
                 }
             }
 
-            await Clients.Group(conn.ChatRoom).UserLeftGroup($"{conn.UserName} salió del canal");
+            Message msg = new() {
+                SenderId = Context.UserIdentifier!,
+                Content = $"{conn.UserName} salió del canal"
+            };
+
+            await Clients.Group(conn.ChatRoom).UserLeftGroup(msg.Content);
             await Clients.Caller.LeftGroup("Regresa pronto!");
             await Clients.Group(conn.ChatRoom).UserList(conn.ChatRoom, GetUsersInRoom(conn.ChatRoom));
+            await _messageService.AddSystemMessage(msg);
         }
 
         public async Task SendMessage(string msg)
@@ -138,12 +151,21 @@ namespace SignalR.Hubs
             if (_sharedDb.Connections.TryGetValue(Context.ConnectionId, out UserConnection? conn))
             {
                 await Clients.Group(conn.ChatRoom).ReceivedMessage(conn.UserName, msg);
+                await _messageService.AddUserMessage(conn.ChatRoom, new Message {
+                    SenderId = Context.UserIdentifier!,
+                    Content = msg
+                });
             }
         }
 
         public async Task SendPrivateMessage(string receiverId, string username, string message)
         {
             await Clients.User(receiverId).ReceivePrivateMessage(Context.UserIdentifier, username, message);
+            await _messageService.AddUserMessage("", new Message {
+                SenderId = Context.UserIdentifier!,
+                ReceiverId = receiverId,
+                Content = message
+            });
         }
 
         public async Task SendTypingInGroup(string groupName, string user)
@@ -175,8 +197,8 @@ namespace SignalR.Hubs
         {
             Message m = new() {
                 RoomId = roomId,
-                Contents = message,
-                UserName = user
+                Content = message,
+                SenderId = user
             };
 
             await _messageService.AddMessageToRoomAsync(roomId, m);
@@ -230,7 +252,13 @@ namespace SignalR.Hubs
                         }
                     }
 
-                    await Clients.Group(groupName).DisconnectedUser(username, $"El usuario '{username}' salió del grupo '{groupName}'");
+                    Message msg = new() {
+                        SenderId = Context.UserIdentifier!,
+                        Content = $"El usuario '{username}' salió del grupo '{groupName}'"
+                    };
+
+                    await Clients.Group(groupName).DisconnectedUser(username, msg.Content);
+                    await _messageService.AddSystemMessage(msg);
                 }
             }
 

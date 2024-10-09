@@ -46,7 +46,7 @@ namespace SignalR.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Message message)
         {
-            await _messageService.AddMessageToRoomAsync(message.RoomId, message);
+            await _messageService.AddMessageToRoomAsync((Guid)message.RoomId!, message);
             return Ok(new { message = "Mensaje guardado!" });
         }
     }
