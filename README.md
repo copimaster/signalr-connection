@@ -8,3 +8,5 @@ Esta es una aplicacion de BackEnd con la tecnologia de Signal R para crear comun
 * Enviar mensajes a grupos a los que se a unido
 * Enviar mensajes privados a un contacto seleccionado
 * También, puede visualizar quienes estan escribiendo en tiempo real, ya sea en un grupo o con un contacto privado.
+
+Ejemplo de una aplicacion de React que utiliza esta __API REST__: https://signalr-chat.vercel.app
